@@ -1,0 +1,49 @@
+# =================================================
+# QuickVendor — Production (VPS port 4002)
+# =================================================
+# Usage:
+#   yarn quickvendor:prod          → start
+#   yarn quickvendor:prod:build    → rebuild & start
+#   yarn quickvendor:prod:down     → stop
+# =================================================
+
+services:
+  app:
+    build:
+      context: .
+      target: production
+    container_name: quickvendor-prod-app
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - '4002:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_prod:/app/uploads
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  db:
+    image: postgres:16-alpine
+    container_name: quickvendor-prod-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quickvendor_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-quickvendor_prod}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-quickvendor_prod} -d ${POSTGRES_DB:-quickvendor_prod}' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_prod:
+  uploads_prod:

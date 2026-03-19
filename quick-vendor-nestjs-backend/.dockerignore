@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+coverage
+.vscode
+.idea
+
+# Env files are NOT copied into the image.
+# They are mounted at runtime via docker-compose env_file.
+.env
+.env.*
+!.env.example
+
+# Local uploads are runtime volumes, not build artifacts.
+uploads

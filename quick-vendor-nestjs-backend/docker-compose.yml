@@ -1,0 +1,63 @@
+# =================================================
+# QuickVendor — Local Development
+# =================================================
+# Usage:
+#   yarn quickvendor:dev          → start app + db
+#   yarn quickvendor:dev:build    → rebuild & start
+#   yarn quickvendor:dev:down     → stop
+#   yarn quickvendor:dev:clean    → stop + wipe volumes
+# =================================================
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Override the .env value so the container uses Docker's internal DNS
+      DATABASE_URL: "postgresql://quickvendor:quickvendor_dev@db:5432/quickvendor_dev"
+      REDIS_URL: "redis://redis:6379"
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quickvendor
+      POSTGRES_PASSWORD: quickvendor_dev
+      POSTGRES_DB: quickvendor_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U quickvendor -d quickvendor_dev' ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata_dev:

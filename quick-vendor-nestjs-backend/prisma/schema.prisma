@@ -1,0 +1,170 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  VENDOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  DELETED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CONFIRMED
+  FULFILLED
+  EXPIRED
+  REFUNDED
+  CANCELLED
+}
+
+model User {
+  id                   String     @id @default(uuid())
+  email                String     @unique
+  hashedPassword       String     @map("hashed_password")
+  whatsappNumber       String     @map("whatsapp_number")
+  storeUrl             String?    @map("store_url")
+  storeName            String?    @map("store_name")
+  storeSlug            String?    @unique @map("store_slug")
+  bannerUrl            String?    @map("banner_url")
+  role                 UserRole   @default(VENDOR)
+  status               UserStatus @default(ACTIVE)
+  whatsappVerified     Boolean?   @map("whatsapp_verified")
+  paystackSubaccountCode String?  @map("paystack_subaccount_code")
+  bankCode             String?    @map("bank_code")
+  bankAccountNumber    String?    @map("bank_account_number")
+  bankAccountName      String?    @map("bank_account_name")
+  paymentSetupComplete Boolean    @default(false) @map("payment_setup_complete")
+  suspendedAt          DateTime?  @map("suspended_at")
+  suspensionReason     String?    @map("suspension_reason")
+  deletedAt            DateTime?  @map("deleted_at")
+  lastLoginAt          DateTime?  @map("last_login_at")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime?  @updatedAt @map("updated_at")
+  products             Product[]
+  orders               Order[]    @relation("VendorOrders")
+  reportsAgainst       Report[]   @relation("ReportsAgainst")
+
+  @@map("users")
+}
+
+model Product {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  price       Int
+  imageUrl1   String?   @map("image_url_1")
+  imageUrl2   String?   @map("image_url_2")
+  imageUrl3   String?   @map("image_url_3")
+  imageUrl4   String?   @map("image_url_4")
+  isAvailable Boolean   @default(true) @map("is_available")
+  clickCount  Int       @default(0) @map("click_count")
+  userId      String    @map("user_id")
+  owner       User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+  orders      Order[]
+
+  @@map("products")
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  reference         String      @unique
+  vendorId          String      @map("vendor_id")
+  vendor            User        @relation("VendorOrders", fields: [vendorId], references: [id])
+  productId         String      @map("product_id")
+  product           Product     @relation(fields: [productId], references: [id])
+  quantity          Int         @default(1)
+  amount            Int
+  status            OrderStatus @default(PENDING)
+  customerEmail     String      @map("customer_email")
+  customerName      String      @map("customer_name")
+  customerPhone     String?     @map("customer_phone")
+  paystackReference String?     @map("paystack_reference")
+  paidAt            DateTime?   @map("paid_at")
+  confirmedAt       DateTime?   @map("confirmed_at")
+  fulfilledAt       DateTime?   @map("fulfilled_at")
+  cancelledAt       DateTime?   @map("cancelled_at")
+  refundedAt        DateTime?   @map("refunded_at")
+  reports           Report[]
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime?   @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model Report {
+  id            String         @id @default(uuid())
+  vendorId      String         @map("vendor_id")
+  vendor        User           @relation("ReportsAgainst", fields: [vendorId], references: [id])
+  category      ReportCategory
+  description   String
+  customerEmail String         @map("customer_email")
+  customerPhone String?        @map("customer_phone")
+  orderId       String?        @map("order_id")
+  order         Order?         @relation(fields: [orderId], references: [id])
+  status        ReportStatus   @default(OPEN)
+  adminNotes    String?        @map("admin_notes")
+  resolvedAt    DateTime?      @map("resolved_at")
+  resolvedBy    String?        @map("resolved_by")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime?      @updatedAt @map("updated_at")
+
+  @@map("reports")
+}
+
+enum ReportCategory {
+  FRAUD
+  COUNTERFEIT_GOODS
+  NON_DELIVERY
+  POOR_QUALITY
+  HARASSMENT
+  WRONG_ITEM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model PlatformSettings {
+  id                     String   @id @default("singleton")
+  commissionPercentage   Int      @default(5) @map("commission_percentage")
+  orderExpirationMinutes Int      @default(30) @map("order_expiration_minutes")
+  escalationThreshold    Int      @default(3) @map("escalation_threshold")
+  escalationWindowDays   Int      @default(30) @map("escalation_window_days")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}

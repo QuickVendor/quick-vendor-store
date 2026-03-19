@@ -1,0 +1,25 @@
+# Environment files (keep .env.example files)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+web-build/
+
+# Expo
+.expo/
+expo-env.d.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.agent/

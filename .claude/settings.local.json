@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(docker ps:*)",
+      "Bash(Stop-Process -Name \"node\" -Force 2>&1 || taskkill /F /IM node.exe 2>&1 | head -5)",
+      "Bash(netstat -ano)",
+      "Bash(xargs -r taskkill //F //PID)",
+      "Bash(PRODUCT_ID=\"80d0e8a1-ce73-47a2-a674-081ae91368f5\" && curl -sL \"http://localhost:3001/store/prince-gadgets/${PRODUCT_ID}\" | grep -o \"Logitech Keyboard\\\\|wa.me\\\\|Buy Now\\\\|Back to store\\\\|₦\" | sort | uniq)",
+      "Bash(PRODUCT_ID=\"80d0e8a1-ce73-47a2-a674-081ae91368f5\" echo \"=== Store page ===\")",
+      "Bash(python -m json.tool)",
+      "Bash(cp:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(find /c/Users/USER/Documents/quick-vendor-store/quick-vendor-mobile-app/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(find /c/Users/USER/Documents/quick-vendor-store/quick-vendor-mobile-app/app -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(npx tsc:*)",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(yarn install:*)",
+      "Bash(yarn type-check:*)",
+      "Bash(find /c/Users/USER/Documents/quick-vendor-store/quick-vendor-nestjs-backend/src -type f -name \"*.ts\" -exec grep -l \"mail\\\\|email\\\\|notify\\\\|notification\\\\|slack\\\\|send\" {})",
+      "Bash(yarn build:*)",
+      "Bash(docker compose:*)"
+    ]
+  }
+}
