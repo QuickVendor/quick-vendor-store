@@ -22,7 +22,8 @@
       "Bash(yarn type-check:*)",
       "Bash(find /c/Users/USER/Documents/quick-vendor-store/quick-vendor-nestjs-backend/src -type f -name \"*.ts\" -exec grep -l \"mail\\\\|email\\\\|notify\\\\|notification\\\\|slack\\\\|send\" {})",
       "Bash(yarn build:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(git push:*)"
     ]
   }
 }
