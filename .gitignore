@@ -23,3 +23,6 @@ Thumbs.db
 
 # Claude Code
 .agent/
+
+# Internal docs (not for version control)
+docs/

@@ -30,16 +30,25 @@ async function bootstrap(): Promise<void> {
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.use(require('express').urlencoded({ extended: true }));
 
-  // CORS
+  // CORS — FRONTEND_URL supports comma-separated values (storefront,admin)
+  const isProd = process.env.NODE_ENV === 'production';
+  const frontendOrigins = frontendUrl
+    ? frontendUrl.split(',').map((u) => u.trim()).filter(Boolean)
+    : [];
+
   app.enableCors({
     origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173',
-      'http://localhost:8081',
-      'http://localhost:19006',
-      'http://localhost:3002',
-      ...(frontendUrl ? [frontendUrl] : []),
+      ...(!isProd
+        ? [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:5173',
+            'http://localhost:8081',
+            'http://localhost:19006',
+            'http://localhost:3002',
+          ]
+        : []),
+      ...frontendOrigins,
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
