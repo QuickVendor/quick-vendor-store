@@ -146,6 +146,7 @@ describe('AuthService', () => {
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: MOCK_USER.id,
         email: MOCK_USER.email,
+        role: MOCK_USER.role,
       });
     });
 
