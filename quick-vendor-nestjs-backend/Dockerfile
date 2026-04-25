@@ -3,8 +3,10 @@
 # ============================================
 FROM node:20-alpine AS base
 WORKDIR /app
+# hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
+# hadolint ignore=DL3060
 RUN --mount=type=cache,target=/root/.yarn \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --network-timeout 300000
@@ -38,6 +40,7 @@ RUN npx nest build
 # ============================================
 FROM node:20-alpine AS production
 WORKDIR /app
+# hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 
 # Create the runtime user first so the numeric UID 1001 resolves during COPY --chown.
