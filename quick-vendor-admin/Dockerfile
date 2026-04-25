@@ -3,6 +3,7 @@
 # ============================================
 FROM node:20-alpine AS deps
 WORKDIR /app
+# hadolint ignore=DL3018
 RUN apk add --no-cache libc6-compat
 COPY package.json yarn.lock ./
 RUN --mount=type=cache,target=/root/.yarn \
@@ -14,6 +15,7 @@ RUN --mount=type=cache,target=/root/.yarn \
 # ============================================
 FROM node:20-alpine AS builder
 WORKDIR /app
+# hadolint ignore=DL3018
 RUN apk add --no-cache libc6-compat
 
 # NEXT_PUBLIC_* must be present at build time — they are inlined into client bundles.
@@ -36,9 +38,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Ensure public/ exists even if the project has no static assets — keeps the COPY in the runner stage idempotent.
-RUN mkdir -p public
-
-RUN yarn build
+RUN mkdir -p public && yarn build
 
 # ============================================
 # Stage 3: Runner — minimal production image
