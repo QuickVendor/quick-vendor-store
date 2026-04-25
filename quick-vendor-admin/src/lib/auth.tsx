@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = sessionStorage.getItem('admin_token');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setTokenState(stored);
   }, []);
 

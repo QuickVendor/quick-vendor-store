@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+import { getApiUrl } from './env';
+
+const API_URL = getApiUrl();
 
 type FetchOptions = RequestInit & { token?: string };
 
@@ -15,7 +17,7 @@ async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, (body as any).message ?? 'Request failed');
+    throw new ApiError(res.status, (body as { message?: string }).message ?? 'Request failed');
   }
 
   if (res.status === 204) return undefined as T;
