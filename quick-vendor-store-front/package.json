@@ -10,8 +10,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@next/env": "16.2.4",
     "@swc/helpers": "^0.5.15",
     "next": "^16.2.3",
+    "styled-jsx": "5.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
