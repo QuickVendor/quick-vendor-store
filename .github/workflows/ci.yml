@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'quick-vendor-nestjs-backend/**'
+      - 'quick-vendor-store-front/**'
+      - 'quick-vendor-admin/**'
+      - '.github/workflows/**'
+
+jobs:
+  lint-type-check:
+    name: Lint & Type Check (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        service:
+          - quick-vendor-nestjs-backend
+          - quick-vendor-store-front
+          - quick-vendor-admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.yarn/cache
+          key: yarn-${{ matrix.service }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ matrix.service }}-
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ${{ matrix.service }}
+        run: yarn lint
+
+      - name: Type check
+        working-directory: ${{ matrix.service }}
+        run: yarn type-check
+
+  test:
+    name: Unit Tests (Backend)
+    needs: lint-type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.yarn/cache
+          key: yarn-quick-vendor-nestjs-backend-${{ hashFiles('quick-vendor-nestjs-backend/yarn.lock') }}
+          restore-keys: |
+            yarn-quick-vendor-nestjs-backend-
+
+      - name: Install dependencies
+        working-directory: quick-vendor-nestjs-backend
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests with coverage
+        working-directory: quick-vendor-nestjs-backend
+        run: yarn test:cov
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: quick-vendor-nestjs-backend/coverage/
+          retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        working-directory: quick-vendor-nestjs-backend
+        run: yarn install --frozen-lockfile
+
+      - name: Install storefront dependencies
+        working-directory: quick-vendor-store-front
+        run: yarn install --frozen-lockfile
+
+      - name: Install admin dependencies
+        working-directory: quick-vendor-admin
+        run: yarn install --frozen-lockfile
+
+      - name: Audit backend dependencies
+        working-directory: quick-vendor-nestjs-backend
+        run: yarn audit --level high
+
+      - name: Audit storefront dependencies
+        working-directory: quick-vendor-store-front
+        run: yarn audit --level high
+
+      - name: Audit admin dependencies
+        working-directory: quick-vendor-admin
+        run: yarn audit --level high
+
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: quick-vendor-nestjs-backend/Dockerfile
+
+      - name: Lint storefront Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: quick-vendor-store-front/Dockerfile
+
+      - name: Lint admin Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: quick-vendor-admin/Dockerfile
