@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UserRole, UserStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,18 @@ const MOCK_USER = {
   storeSlug: 'test-store',
   storeUrl: null,
   bannerUrl: null,
+  role: UserRole.VENDOR,
+  status: UserStatus.ACTIVE,
+  whatsappVerified: null,
+  paystackSubaccountCode: null,
+  bankCode: null,
+  bankAccountNumber: null,
+  bankAccountName: null,
+  paymentSetupComplete: false,
+  suspendedAt: null,
+  suspensionReason: null,
+  deletedAt: null,
+  lastLoginAt: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: null,
 };
@@ -128,7 +141,7 @@ describe('AuthService', () => {
   // ── generateToken ──────────────────────────────────────
   describe('generateToken', () => {
     it('should call jwtService.sign with sub and email payload', () => {
-      service.generateToken(MOCK_USER as any);
+      service.generateToken(MOCK_USER);
 
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: MOCK_USER.id,
@@ -137,7 +150,7 @@ describe('AuthService', () => {
     });
 
     it('should return the token string from JwtService', () => {
-      const result = service.generateToken(MOCK_USER as any);
+      const result = service.generateToken(MOCK_USER);
       expect(result).toBe('mock-jwt-token');
     });
   });

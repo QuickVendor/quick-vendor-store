@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getProduct, createOrder, formatPrice } from '@/lib/api';
 import type { PublicProduct, Store } from '@/lib/api';
 
 export default function CheckoutPage() {
   const params = useParams<{ slug: string; productId: string }>();
-  const router = useRouter();
 
   const [store, setStore] = useState<Store | null>(null);
   const [product, setProduct] = useState<PublicProduct | null>(null);
