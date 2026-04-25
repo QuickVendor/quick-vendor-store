@@ -50,10 +50,10 @@
     "quickvendor:fresh": "docker compose down -v && docker compose up --build",
     "health": "curl http://localhost:3000/health",
     "pre-push": "yarn type-check && yarn lint && yarn format:check && yarn test",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",

@@ -4,9 +4,11 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { UserCacheService } from '../auth/user-cache.service';
 import { SetupPaymentDto } from './dto/setup-payment.dto';
 import { VerifyAccountDto } from './dto/verify-account.dto';
 
@@ -40,6 +42,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly userCache: UserCacheService,
   ) {
     this.secretKey = this.configService.get<string>('paystack.secretKey') ?? '';
     this.platformFeePercentage =
@@ -75,6 +78,13 @@ export class PaymentsService {
   }
 
   async verifyAccount(dto: VerifyAccountDto): Promise<{ accountName: string }> {
+    // Paystack's /bank/resolve endpoint requires live mode + an approved NIBSS
+    // integration. In test mode it returns 422 for every account. Short-circuit
+    // so vendors can complete setup in dev/staging with a placeholder name.
+    if (this.secretKey.startsWith('sk_test_')) {
+      return { accountName: 'TEST ACCOUNT' };
+    }
+
     const params = new URLSearchParams({
       account_number: dto.accountNumber,
       bank_code: dto.bankCode,
@@ -118,7 +128,7 @@ export class PaymentsService {
           body: JSON.stringify({
             settlement_bank: dto.bankCode,
             account_number: dto.accountNumber,
-            percentage_charge: this.platformFeePercentage / 100,
+            percentage_charge: this.platformFeePercentage,
           }),
         },
       );
@@ -137,20 +147,37 @@ export class PaymentsService {
           business_name: user.storeName ?? user.email,
           settlement_bank: dto.bankCode,
           account_number: dto.accountNumber,
-          percentage_charge: this.platformFeePercentage / 100,
+          percentage_charge: this.platformFeePercentage,
           primary_contact_email: user.email,
         }),
       });
 
+      const responseBody = (await response.json()) as {
+        data?: PaystackSubaccountData;
+        message?: string;
+      };
+
       if (!response.ok) {
-        const error = (await response.json()) as { message?: string };
+        this.logger.error('Paystack subaccount creation failed', responseBody);
         throw new BadRequestException(
-          error.message ?? 'Failed to create payment account with Paystack',
+          responseBody.message ??
+            'Failed to create payment account with Paystack',
         );
       }
 
-      const data = (await response.json()) as { data: PaystackSubaccountData };
-      subaccountCode = data.data.subaccount_code;
+      const data = responseBody as { data: PaystackSubaccountData };
+      subaccountCode = data.data?.subaccount_code;
+
+      if (!subaccountCode) {
+        this.logger.error('Paystack did not return a subaccount code', data);
+        throw new BadRequestException(
+          'Payment setup failed — no subaccount code returned',
+        );
+      }
+
+      this.logger.log(
+        `Paystack subaccount created: ${subaccountCode} for user ${userId}`,
+      );
     }
 
     // 3. Save to database
@@ -164,6 +191,7 @@ export class PaymentsService {
         paymentSetupComplete: true,
       },
     });
+    this.userCache.invalidate(userId);
   }
 
   async initiateRefund(orderId: string, userId: string): Promise<void> {
@@ -231,9 +259,7 @@ export class PaymentsService {
   }
 
   async handleWebhook(payload: Buffer, signature: string): Promise<void> {
-    const crypto = await import('crypto');
-    const hash = crypto
-      .createHmac('sha512', this.secretKey)
+    const hash = createHmac('sha512', this.secretKey)
       .update(payload)
       .digest('hex');
 

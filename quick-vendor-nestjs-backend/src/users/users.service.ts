@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { UserCacheService } from '../auth/user-cache.service';
 import { StorageService } from '../storage/storage.service';
 import { User } from '@prisma/client';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
@@ -19,6 +20,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly userCache: UserCacheService,
     private readonly storageService: StorageService,
     private readonly whatsAppService: WhatsAppService,
   ) {}
@@ -88,6 +90,8 @@ export class UsersService {
       },
     });
 
+    this.userCache.invalidate(userId);
+
     // Re-validate if WhatsApp number changed (non-blocking)
     if (dto.whatsapp_number) {
       void this.whatsAppService.validateAndUpdate(userId, dto.whatsapp_number);
@@ -110,10 +114,12 @@ export class UsersService {
       file.mimetype,
     );
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { bannerUrl: result.url },
     });
+    this.userCache.invalidate(userId);
+    return updated;
   }
 
   async deleteBanner(userId: string): Promise<User> {
@@ -123,10 +129,12 @@ export class UsersService {
       await this.deleteExistingBanner(user.bannerUrl);
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { bannerUrl: null },
     });
+    this.userCache.invalidate(userId);
+    return updated;
   }
 
   private async deleteExistingBanner(bannerUrl: string): Promise<void> {

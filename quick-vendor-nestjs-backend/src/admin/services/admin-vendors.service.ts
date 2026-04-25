@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminAuditService } from './admin-audit.service';
+import { UserCacheService } from '../../auth/user-cache.service';
 import { UserStatus } from '@prisma/client';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class AdminVendorsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
+    private readonly userCache: UserCacheService,
   ) {}
 
   async findAll(query: {
@@ -162,6 +164,8 @@ export class AdminVendorsService {
       },
     });
 
+    this.userCache.invalidate(vendorId);
+
     await this.auditService.log(adminId, 'VENDOR_SUSPENDED', 'User', vendorId, {
       reason,
     });
@@ -190,6 +194,8 @@ export class AdminVendorsService {
       },
     });
 
+    this.userCache.invalidate(vendorId);
+
     await this.auditService.log(
       adminId,
       'VENDOR_UNSUSPENDED',
@@ -216,6 +222,8 @@ export class AdminVendorsService {
         deletedAt: new Date(),
       },
     });
+
+    this.userCache.invalidate(vendorId);
 
     await this.auditService.log(adminId, 'VENDOR_DELETED', 'User', vendorId);
   }

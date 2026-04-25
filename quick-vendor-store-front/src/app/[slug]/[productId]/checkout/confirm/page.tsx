@@ -11,16 +11,15 @@ export default function ConfirmPage() {
   const params = useParams<{ slug: string; productId: string }>();
   const reference = searchParams.get('ref') ?? searchParams.get('reference') ?? '';
 
-  const [state, setState] = useState<'loading' | 'success' | 'pending' | 'failed'>('loading');
+  const [state, setState] = useState<'loading' | 'success' | 'pending' | 'failed'>(
+    () => (reference ? 'loading' : 'failed'),
+  );
   const [order, setOrder] = useState<OrderVerifyResponse['order']>(null);
   const attempts = useRef(0);
   const maxAttempts = 12; // 12 × 3s = 36s max
 
   useEffect(() => {
-    if (!reference) {
-      setState('failed');
-      return;
-    }
+    if (!reference) return;
 
     const poll = async () => {
       try {

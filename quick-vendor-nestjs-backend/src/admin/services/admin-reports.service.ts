@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminAuditService } from './admin-audit.service';
+import { UserCacheService } from '../../auth/user-cache.service';
 import { ReportCategory, ReportStatus } from '@prisma/client';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class AdminReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
+    private readonly userCache: UserCacheService,
   ) {}
 
   async findAll(query: {
@@ -179,6 +181,8 @@ export class AdminReportsService {
         },
       }),
     ]);
+
+    this.userCache.invalidate(report.vendorId);
 
     await this.auditService.log(
       adminId,

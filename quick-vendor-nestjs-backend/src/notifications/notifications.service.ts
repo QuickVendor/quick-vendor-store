@@ -117,7 +117,9 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /** Notify vendor of a new paid order. Fire-and-forget. */
-  async sendVendorOrderNotification(data: VendorNotificationData): Promise<void> {
+  async sendVendorOrderNotification(
+    data: VendorNotificationData,
+  ): Promise<void> {
     if (!this.transporter) return;
 
     const amount = `₦${(data.amount / 100).toLocaleString('en-NG')}`;

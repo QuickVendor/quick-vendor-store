@@ -1,4 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+import { getApiUrl } from './env';
+
+// SSR runs inside the storefront container — `localhost` would loop back to
+// itself, not the backend. `getApiUrl()` returns the Docker DNS / private
+// hostname on the server and the public URL in the browser. See ./env.ts.
+const API_URL = getApiUrl();
 
 export interface PublicProduct {
   id: string;
@@ -101,9 +106,10 @@ export async function verifyOrder(reference: string): Promise<OrderVerifyRespons
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith('http')) return url;
-  // Relative path from backend — prepend API URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
-  return `${apiUrl}${url}`;
+  // Relative path (e.g. /uploads/...) is served same-origin via the Next.js
+  // rewrite in next.config.ts. Keep it relative so next/image treats the
+  // fetch as same-host (Next.js 16 blocks image optimisation from private IPs).
+  return url;
 }
 
 export function formatPrice(kobo: number): string {

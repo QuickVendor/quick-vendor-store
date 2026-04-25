@@ -14,9 +14,11 @@ export class LocalStorageProvider implements StorageProvider {
     this.ensureUploadDir();
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async upload(
     key: string,
     body: Buffer,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _contentType: string,
   ): Promise<string> {
     const filePath = path.join(this.uploadDir, key);
@@ -32,6 +34,7 @@ export class LocalStorageProvider implements StorageProvider {
     return this.getUrl(key);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async delete(key: string): Promise<void> {
     const filePath = path.join(this.uploadDir, key);
     if (fs.existsSync(filePath)) {

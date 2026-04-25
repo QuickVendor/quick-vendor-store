@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { TokenBlocklistService } from './token-blocklist.service';
+import { UserCacheService } from './user-cache.service';
 
 @Module({
   imports: [
@@ -25,8 +26,13 @@ import { TokenBlocklistService } from './token-blocklist.service';
       },
     }),
   ],
-  providers: [AuthService, JwtStrategy, TokenBlocklistService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    TokenBlocklistService,
+    UserCacheService,
+  ],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, TokenBlocklistService],
+  exports: [AuthService, JwtModule, TokenBlocklistService, UserCacheService],
 })
 export class AuthModule {}

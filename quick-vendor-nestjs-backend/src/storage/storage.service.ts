@@ -17,19 +17,29 @@ export class StorageService {
     private readonly s3Provider: S3StorageProvider,
   ) {
     const driver = this.configService.get<string>('storage.driver') ?? 'local';
+    const appEnv = this.configService.get<string>('appEnv') ?? 'local';
 
-    if (driver === 's3' && this.s3Provider.isConfigured()) {
+    if (driver === 's3') {
+      // env.ts already validated S3 creds when driver=s3, so this should never
+      // throw — but if someone bypasses validation we surface it loudly rather
+      // than silently downgrading and losing uploads in staging/prod.
+      if (!this.s3Provider.isConfigured()) {
+        if (appEnv !== 'local') {
+          throw new Error(
+            'STORAGE_DRIVER=s3 but S3 client failed to initialise — refusing to fall back to local storage in non-local env.',
+          );
+        }
+        this.provider = this.localProvider;
+        this.logger.warn(
+          'S3 requested but not configured — using local (dev only).',
+        );
+        return;
+      }
       this.provider = this.s3Provider;
       this.logger.log('Using S3 storage provider');
     } else {
       this.provider = this.localProvider;
-      if (driver === 's3') {
-        this.logger.warn(
-          'S3 requested but not configured — falling back to local',
-        );
-      } else {
-        this.logger.log('Using local storage provider');
-      }
+      this.logger.log('Using local storage provider');
     }
   }
 

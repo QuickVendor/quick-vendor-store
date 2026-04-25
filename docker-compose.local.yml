@@ -1,0 +1,168 @@
+# =====================================================================
+# Quick Vendor — Local full-stack orchestration
+# ---------------------------------------------------------------------
+# Brings up PostgreSQL, Redis, backend, storefront, and admin on one
+# shared network for local end-to-end testing against production-style
+# Docker images.
+#
+# Inter-service communication contract:
+#   - Server-to-server (SSR fetch, healthchecks): use container DNS
+#       backend → http://backend:3000
+#   - Browser-to-server: use the host port mapping
+#       backend → http://localhost:3000
+#   - Storefront/Admin INTERNAL_API_URL points at the docker network
+#     and NEXT_PUBLIC_API_URL points at the host port.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up --build
+#   docker compose -f docker-compose.local.yml down
+#
+# NOT for Railway or VPS deployment — those use the per-service
+# Dockerfiles + railway.json directly. This file only glues them
+# together for local integration testing.
+# =====================================================================
+
+services:
+  # ==================== PostgreSQL ====================
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quickvendor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quickvendor_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-quickvendor_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - quickvendor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quickvendor} -d ${POSTGRES_DB:-quickvendor_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - quickvendor
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==================== NestJS Backend ====================
+  backend:
+    build:
+      context: ./quick-vendor-nestjs-backend
+      target: production
+    restart: unless-stopped
+    # All app secrets (Paystack, JWT, SMTP) come from the backend's own .env.
+    env_file:
+      - ./quick-vendor-nestjs-backend/.env
+    # APP_ENV=local pins the env contract — driver=local, paystack=test,
+    # CORS auto-allows localhost:* origins. DATABASE_URL/REDIS_URL must
+    # use the docker network DNS, not localhost.
+    environment:
+      APP_ENV: local
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://quickvendor:quickvendor_dev@db:5432/quickvendor_dev
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: http://localhost:3001,http://localhost:3002
+      STORAGE_DRIVER: local
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - quickvendor
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==================== Storefront (Next.js) ====================
+  storefront:
+    build:
+      context: ./quick-vendor-store-front
+      args:
+        # NEXT_PUBLIC_* are baked into the client bundle at build time.
+        # The browser hits the backend via the host port mapping; SSR
+        # uses INTERNAL_API_URL (container DNS) at runtime.
+        NEXT_PUBLIC_APP_ENV: local
+        NEXT_PUBLIC_API_URL: ${STOREFRONT_PUBLIC_API_URL:-http://localhost:3000}
+        NEXT_PUBLIC_APP_URL: ${STOREFRONT_APP_URL:-http://localhost:3001}
+        NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
+        # Bake the internal URL into rewrites so /uploads/* proxy works.
+        INTERNAL_API_URL: http://backend:3000
+        NEXT_IMAGE_UNOPTIMIZED: "true"
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_APP_ENV: local
+      INTERNAL_API_URL: http://backend:3000
+      NEXT_PUBLIC_API_URL: ${STOREFRONT_PUBLIC_API_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${STOREFRONT_APP_URL:-http://localhost:3001}
+    ports:
+      - "3001:3000"
+    networks:
+      - quickvendor
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==================== Admin Dashboard (Next.js) ====================
+  admin:
+    build:
+      context: ./quick-vendor-admin
+      args:
+        NEXT_PUBLIC_APP_ENV: local
+        NEXT_PUBLIC_API_URL: ${ADMIN_PUBLIC_API_URL:-http://localhost:3000}
+        NEXT_PUBLIC_APP_URL: ${ADMIN_APP_URL:-http://localhost:3002}
+        INTERNAL_API_URL: http://backend:3000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_APP_ENV: local
+      INTERNAL_API_URL: http://backend:3000
+      NEXT_PUBLIC_API_URL: ${ADMIN_PUBLIC_API_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${ADMIN_APP_URL:-http://localhost:3002}
+    ports:
+      - "3002:3000"
+    networks:
+      - quickvendor
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  quickvendor:
+    driver: bridge
+
+volumes:
+  pgdata:
+  uploads:

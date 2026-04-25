@@ -18,8 +18,6 @@ const IMAGE_FIELDS = [
   'imageUrl4',
 ] as const;
 
-type ImageField = (typeof IMAGE_FIELDS)[number];
-
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);

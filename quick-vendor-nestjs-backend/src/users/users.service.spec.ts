@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // Mock uuid (ESM-only) before any imports that transitively depend on it
 jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 
@@ -6,7 +7,9 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { UserCacheService } from '../auth/user-cache.service';
 import { StorageService } from '../storage/storage.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 
 // ── Fixtures ───────────────────────────────────────────────
 const MOCK_USER = {
@@ -47,10 +50,12 @@ describe('UsersService', () => {
     };
   };
   let authService: { hashPassword: jest.Mock };
+  let userCache: { invalidate: jest.Mock; get: jest.Mock; set: jest.Mock };
   let storageService: {
     uploadStoreBanner: jest.Mock;
     deleteFile: jest.Mock;
   };
+  let whatsApp: { validateAndUpdate: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -66,6 +71,12 @@ describe('UsersService', () => {
       hashPassword: jest.fn().mockResolvedValue('hashed-password'),
     };
 
+    userCache = {
+      invalidate: jest.fn(),
+      get: jest.fn(),
+      set: jest.fn(),
+    };
+
     storageService = {
       uploadStoreBanner: jest.fn().mockResolvedValue({
         url: 'https://s3.example.com/banner.jpg',
@@ -74,12 +85,18 @@ describe('UsersService', () => {
       deleteFile: jest.fn().mockResolvedValue(undefined),
     };
 
+    whatsApp = {
+      validateAndUpdate: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuthService, useValue: authService },
+        { provide: UserCacheService, useValue: userCache },
         { provide: StorageService, useValue: storageService },
+        { provide: WhatsAppService, useValue: whatsApp },
       ],
     }).compile();
 

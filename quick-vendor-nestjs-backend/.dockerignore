@@ -6,6 +6,7 @@ dist
 coverage
 .vscode
 .idea
+.claude
 
 # Env files are NOT copied into the image.
 # They are mounted at runtime via docker-compose env_file.

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserCacheService } from '../auth/user-cache.service';
 
 interface AbstractApiResponse {
   phone: string;
@@ -25,6 +26,7 @@ export class WhatsAppService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly userCache: UserCacheService,
   ) {
     this.apiKey =
       this.configService.get<string>('whatsapp.abstractApiKey') ?? '';
@@ -76,6 +78,8 @@ export class WhatsAppService {
       where: { id: userId },
       data: { whatsappVerified: result },
     });
+
+    this.userCache.invalidate(userId);
 
     this.logger.log(
       `WhatsApp ${result ? 'verified' : 'invalid'} for user ${userId}`,

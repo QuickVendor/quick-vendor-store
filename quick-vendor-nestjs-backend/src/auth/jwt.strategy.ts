@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { TokenBlocklistService } from './token-blocklist.service';
+import { UserCacheService } from './user-cache.service';
 import type { User } from '@prisma/client';
 
 /**
@@ -27,16 +28,12 @@ interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
-  private readonly userCache = new Map<
-    string,
-    { user: User; expiresAt: number }
-  >();
-  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(
     configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly tokenBlocklist: TokenBlocklistService,
+    private readonly userCache: UserCacheService,
   ) {
     const secret = configService.get<string>('jwt.secret') ?? 'fallback-secret';
     super({
@@ -56,8 +53,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Check cache first to avoid DB hit on every request
     const cached = this.userCache.get(payload.sub);
-    if (cached && Date.now() < cached.expiresAt) {
-      return cached.user;
+    if (cached) {
+      return cached;
     }
 
     const user = await this.prisma.user.findUnique({
@@ -69,16 +66,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     if (user.status !== 'ACTIVE') {
-      this.userCache.delete(payload.sub);
+      this.userCache.invalidate(payload.sub);
       throw new UnauthorizedException('Account is suspended or deactivated');
     }
 
-    // Cache for 5 minutes
-    this.userCache.set(payload.sub, {
-      user,
-      expiresAt: Date.now() + this.CACHE_TTL_MS,
-    });
-
+    this.userCache.set(user);
     return user;
   }
 }

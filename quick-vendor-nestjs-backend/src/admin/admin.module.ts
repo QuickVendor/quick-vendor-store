@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { AuthModule } from '../auth/auth.module';
 
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import { AdminVendorsController } from './controllers/admin-vendors.controller';
@@ -19,7 +20,7 @@ import { AdminAuditService } from './services/admin-audit.service';
 import { AdminSettingsService } from './services/admin-settings.service';
 
 @Module({
-  imports: [PrismaModule, PaymentsModule],
+  imports: [PrismaModule, PaymentsModule, AuthModule],
   controllers: [
     AdminDashboardController,
     AdminVendorsController,

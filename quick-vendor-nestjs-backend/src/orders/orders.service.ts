@@ -33,7 +33,8 @@ export class OrdersService {
   ) {
     this.secretKey = this.configService.get<string>('paystack.secretKey') ?? '';
     this.frontendUrl =
-      this.configService.get<string>('frontendUrl') ?? 'http://localhost:3001';
+      this.configService.get<string[]>('frontendUrls')?.[0] ||
+      'http://localhost:3001';
   }
 
   async createOrder(
@@ -70,7 +71,9 @@ export class OrdersService {
           email: dto.customerEmail,
           amount,
           reference,
-          subaccount: product.owner.paystackSubaccountCode,
+          ...(product.owner.paystackSubaccountCode
+            ? { subaccount: product.owner.paystackSubaccountCode }
+            : {}),
           callback_url: callbackUrl,
           metadata: {
             product_id: product.id,
@@ -82,8 +85,12 @@ export class OrdersService {
     );
 
     if (!paystackResponse.ok) {
+      const errBody = (await paystackResponse.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      this.logger.error('Paystack initialization failed', errBody);
       throw new BadRequestException(
-        'Failed to initialize payment with Paystack',
+        errBody.message ?? 'Failed to initialize payment with Paystack',
       );
     }
 
@@ -147,7 +154,7 @@ export class OrdersService {
       take: limit,
     });
 
-    return orders.map(OrderResponseDto.from);
+    return orders.map((o) => OrderResponseDto.from(o));
   }
 
   async getVendorOrder(

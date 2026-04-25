@@ -23,7 +23,23 @@
       "Bash(find /c/Users/USER/Documents/quick-vendor-store/quick-vendor-nestjs-backend/src -type f -name \"*.ts\" -exec grep -l \"mail\\\\|email\\\\|notify\\\\|notification\\\\|slack\\\\|send\" {})",
       "Bash(yarn build:*)",
       "Bash(docker compose:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\('scripts',{}\\).items\\(\\)}, indent=2\\)\\)\")",
+      "Bash(xargs wc *)",
+      "Bash(git *)",
+      "Bash(xargs grep *)",
+      "Bash(grep -v '^#\\\\|^$' /c/Users/USER/Documents/quick-vendor-store/quick-vendor-nestjs-backend/.env)",
+      "Bash(awk -F= '{print $1}')",
+      "Bash(yarn test *)",
+      "Bash(node *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('packageManager:', d.get\\('packageManager', 'not set'\\)\\); print\\('engines:', d.get\\('engines', {}\\)\\)\" cat /c/Users/USER/Documents/quick-vendor-store/quick-vendor-nestjs-backend/.npmrc)",
+      "Bash(yarn test:cov)",
+      "Bash(yarn lint *)",
+      "Bash(yarn lint:fix)",
+      "Bash(yarn format *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -A 200 \"src\\\\\\\\\\\\\\\\main.ts\")",
+      "Bash(grep -v \"^Done\\\\|^error Command\\\\|^info Visit\\\\|^yarn run\\\\|^\\\\$\")"
     ]
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // Mock uuid (ESM-only) before any imports that transitively depend on it
 jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 

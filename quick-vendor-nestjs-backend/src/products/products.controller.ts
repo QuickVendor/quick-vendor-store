@@ -69,7 +69,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'List own products' })
   async findAll(@CurrentUser() user: User): Promise<ProductResponseDto[]> {
     const products = await this.productsService.findAllByUser(user.id);
-    return products.map(ProductResponseDto.fromProduct);
+    return products.map((p) => ProductResponseDto.fromProduct(p));
   }
 
   @Put(':id')
@@ -155,10 +155,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Check storage health' })
-  async getStorageStatus(): Promise<{
-    configured: boolean;
-    driver: string;
-  }> {
+  getStorageStatus(): { configured: boolean; driver: string } {
     return {
       configured: this.storageService.isConfigured(),
       driver: this.storageService.getDriverName(),

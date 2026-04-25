@@ -75,7 +75,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  async getProfile(@CurrentUser() user: User): Promise<UserProfileDto> {
+  getProfile(@CurrentUser() user: User): UserProfileDto {
     return UserProfileDto.fromUser(user);
   }
 

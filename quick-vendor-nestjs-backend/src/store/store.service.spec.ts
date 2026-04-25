@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { StoreService } from './store.service';
@@ -194,14 +195,13 @@ describe('StoreService', () => {
       expect(result.products).toEqual([]);
     });
 
-    it('should collect all 5 image URLs when all slots are filled', async () => {
+    it('should collect all 4 image URLs when all slots are filled', async () => {
       const fullImageProduct = {
         ...MOCK_PRODUCT_AVAILABLE,
         imageUrl1: 'url1',
         imageUrl2: 'url2',
         imageUrl3: 'url3',
         imageUrl4: 'url4',
-        imageUrl5: 'url5',
       };
       prisma.user.findUnique.mockResolvedValue({
         ...MOCK_USER_WITH_PRODUCTS,
@@ -215,7 +215,6 @@ describe('StoreService', () => {
         'url2',
         'url3',
         'url4',
-        'url5',
       ]);
     });
   });
