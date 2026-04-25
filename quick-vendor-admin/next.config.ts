@@ -9,7 +9,6 @@ const isLocal = appEnv === 'local';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  eslint: { ignoreDuringBuilds: true },
   images: {
     unoptimized: isLocal || process.env.NEXT_IMAGE_UNOPTIMIZED === 'true',
     remotePatterns: [
