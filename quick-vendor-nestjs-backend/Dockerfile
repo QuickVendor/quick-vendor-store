@@ -43,9 +43,11 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 
-# Create the runtime user first so the numeric UID 1001 resolves during COPY --chown.
+# Create the runtime user. Remove npm (not needed at runtime) to eliminate
+# its bundled vulnerable transitive deps (tar, minimatch, cross-spawn, glob).
 RUN addgroup -S -g 1001 appgroup \
- && adduser -S -u 1001 -G appgroup appuser
+ && adduser -S -u 1001 -G appgroup appuser \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=build --chown=1001:1001 /app/dist ./dist
 COPY --from=build --chown=1001:1001 /app/node_modules ./node_modules

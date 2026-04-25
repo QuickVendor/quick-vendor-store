@@ -49,9 +49,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Non-root runtime user
+# Non-root runtime user. Remove npm (not needed at runtime) to eliminate
+# its bundled vulnerable transitive deps (tar, minimatch, cross-spawn, glob).
 RUN addgroup -S -g 1001 nodejs \
- && adduser -S -u 1001 -G nodejs nextjs
+ && adduser -S -u 1001 -G nodejs nextjs \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Next.js standalone bundles server.js plus the pruned node_modules it actually needs.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
