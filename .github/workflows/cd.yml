@@ -84,37 +84,3 @@ jobs:
           severity: CRITICAL
           exit-code: 1
           ignore-unfixed: true
-
-  deploy:
-    name: Deploy to Railway Staging
-    needs: build-push
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      # Single Railway project, two environments (staging + production).
-      # --environment makes the target env explicit so the CLI doesn't fall
-      # back to the project's default env (production) when the token is
-      # ambiguous. Service names are project-scoped and shared across envs.
-      - name: Deploy backend to staging
-        working-directory: quick-vendor-nestjs-backend
-        run: railway up --service quickvendor-backend --environment staging --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-
-      - name: Deploy storefront to staging
-        working-directory: quick-vendor-store-front
-        run: railway up --service quickvendor-storefront --environment staging --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-
-      - name: Deploy admin to staging
-        working-directory: quick-vendor-admin
-        run: railway up --service quickvendor-admin --environment staging --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}

@@ -31,8 +31,9 @@ Job 3: security-scan    ← dep audit + secret scan + Dockerfile lint
       ↓
 [CD workflow triggers via workflow_run]
 Job 4: build-push       ← builds all 3 Docker images in parallel, Trivy CVE scan per image
-      ↓ (fails fast if any image has unfixed CRITICAL/HIGH CVEs)
-Job 5: deploy           ← triggers Railway staging deployment for all 3 services
+      ↓ (fails fast if any image has unfixed CRITICAL CVEs)
+[Railway]
+Detects push to main and deploys all 3 services to staging automatically.
 ```
 
 ---
@@ -60,7 +61,7 @@ Three checks must all pass:
 - Images are pushed to GitHub Container Registry (GHCR) under `ghcr.io/QuickVendor/`.
 - Each image gets two tags: `latest` and the full commit SHA for traceability.
 - Docker layer caching via GitHub Actions cache (`type=gha`) speeds up rebuilds — unchanged layers are never rebuilt.
-- After pushing, Trivy scans each image for CVEs. The pipeline fails if any CRITICAL or HIGH CVE with an available fix is found.
+- After pushing, Trivy scans each image for CVEs. HIGH findings are surfaced informationally (visible in the run log, non-blocking). The pipeline fails only on CRITICAL CVEs with an available fix.
 
 **Image targets by service:**
 | Service | Dockerfile stage |
@@ -74,11 +75,9 @@ Three checks must all pass:
 - `ghcr.io/QuickVendor/quickvendor-storefront`
 - `ghcr.io/QuickVendor/quickvendor-admin`
 
-### Job 5 — Deploy to Railway Staging
-- Runs only after all three images pass the CVE scan.
-- Uses Railway CLI (`railway up --detach`) to trigger deployment of each service.
-- `--detach` returns immediately; Railway streams logs in its own dashboard.
-- Requires the `RAILWAY_TOKEN` secret — see `SECRETS.md`.
+### Deployment — Railway
+
+Railway is connected directly to the GitHub repository (Project → Settings → Source) and watches `main`. On every push that lands, Railway pulls the latest commit and deploys all three services to the staging environment automatically. GitHub Actions does not run any `railway up` command and no Railway token is needed in GitHub Secrets — the pipeline's responsibility ends at pushing the Docker images to GHCR.
 
 ---
 
