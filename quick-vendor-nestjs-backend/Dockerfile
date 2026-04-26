@@ -1,5 +1,5 @@
 # ============================================
-# Stage 1: Base — install deps + generate Prisma client
+# Stage 1: Base — install ALL deps + generate Prisma client
 # ============================================
 FROM node:20-alpine AS base
 WORKDIR /app
@@ -34,9 +34,24 @@ COPY src/ ./src/
 RUN npx nest build
 
 # ============================================
-# Stage 4: Production — lean runtime (non-root)
-#   All artefacts are COPY --chown'd in place. Avoids the slow recursive chown
-#   over node_modules that ran on every build previously.
+# Stage 4: Prod-deps — production-only node_modules
+#   Separate stage so the production image never sees devDependencies
+#   (eslint, jest, @nestjs/cli, ts-*, etc.) that cause CVE noise.
+# ============================================
+FROM node:20-alpine AS prod-deps
+WORKDIR /app
+# hadolint ignore=DL3018
+RUN apk add --no-cache openssl
+COPY package.json yarn.lock ./
+# hadolint ignore=DL3060
+RUN --mount=type=cache,target=/root/.yarn \
+    YARN_CACHE_FOLDER=/root/.yarn \
+    yarn install --frozen-lockfile --production --network-timeout 300000
+
+# ============================================
+# Stage 5: Production — lean runtime (non-root)
+#   node_modules comes from prod-deps (production only).
+#   Generated Prisma client is overlaid from the build stage.
 # ============================================
 FROM node:20-alpine AS production
 WORKDIR /app
@@ -49,8 +64,14 @@ RUN addgroup -S -g 1001 appgroup \
  && adduser -S -u 1001 -G appgroup appuser \
  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
+# 1. Production-only node_modules (no devDependencies)
+COPY --from=prod-deps --chown=1001:1001 /app/node_modules ./node_modules
+
+# 2. Overlay generated Prisma client from the build stage
+COPY --from=build --chown=1001:1001 /app/node_modules/.prisma ./node_modules/.prisma
+
+# 3. Compiled application + Prisma schema (for migrate deploy)
 COPY --from=build --chown=1001:1001 /app/dist ./dist
-COPY --from=build --chown=1001:1001 /app/node_modules ./node_modules
 COPY --from=build --chown=1001:1001 /app/prisma ./prisma
 COPY --chown=1001:1001 package.json ./
 
@@ -62,4 +83,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Use node to invoke prisma directly (npx was removed above).
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node dist/main.js"]
