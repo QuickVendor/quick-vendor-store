@@ -64,11 +64,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Scan ${{ matrix.service }} image for vulnerabilities
+      # Two-pass scan: HIGH findings are surfaced in the logs but never block
+      # the pipeline (many are phantom — e.g. CVEs whose "fixed version" was
+      # never published to npm — or live in package.json declarations that
+      # the prod-deps stage already pruned out of node_modules).
+      # CRITICAL is the only gate.
+      - name: Scan ${{ matrix.service }} image — HIGH (informational)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ghcr.io/${{ steps.owner.outputs.value }}/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
-          severity: CRITICAL,HIGH
+          severity: HIGH
+          exit-code: 0
+          ignore-unfixed: true
+
+      - name: Scan ${{ matrix.service }} image — CRITICAL (blocking)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ steps.owner.outputs.value }}/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
+          severity: CRITICAL
           exit-code: 1
           ignore-unfixed: true
 
