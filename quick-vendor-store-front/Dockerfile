@@ -6,10 +6,8 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache libc6-compat
 COPY package.json yarn.lock ./
-# id=qv-storefront-yarn: Railway's BuildKit requires an explicit cache id.
-RUN --mount=type=cache,id=qv-storefront-yarn,target=/root/.yarn \
-    YARN_CACHE_FOLDER=/root/.yarn \
-    yarn install --frozen-lockfile --network-timeout 300000
+RUN yarn install --frozen-lockfile --network-timeout 300000 \
+ && yarn cache clean
 
 # ============================================
 # Stage 2: Builder — compiles Next.js into .next/standalone

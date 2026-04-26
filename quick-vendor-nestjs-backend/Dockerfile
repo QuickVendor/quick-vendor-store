@@ -6,13 +6,11 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
-# id=qv-backend-yarn: Railway's BuildKit requires an explicit cache id.
-# sharing=locked: serialize cache writes with the parallel prod-deps stage
-# (both target /root/.yarn; default sharing=shared corrupts entries under race).
-# hadolint ignore=DL3060
-RUN --mount=type=cache,id=qv-backend-yarn,target=/root/.yarn,sharing=locked \
-    YARN_CACHE_FOLDER=/root/.yarn \
-    yarn install --frozen-lockfile --network-timeout 300000
+# No BuildKit cache mount: Railway's BuildKit requires id=s/<service-id>-...
+# which can't be templated, and Docker layer caching already covers the common
+# case (lockfile unchanged). yarn cache clean shrinks the layer.
+RUN yarn install --frozen-lockfile --network-timeout 300000 \
+ && yarn cache clean
 COPY prisma ./prisma/
 RUN npx prisma generate
 
@@ -46,11 +44,8 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
-# id matches stage 1 so both share the same cache; sharing=locked serializes.
-# hadolint ignore=DL3060
-RUN --mount=type=cache,id=qv-backend-yarn,target=/root/.yarn,sharing=locked \
-    YARN_CACHE_FOLDER=/root/.yarn \
-    yarn install --frozen-lockfile --production --network-timeout 300000
+RUN yarn install --frozen-lockfile --production --network-timeout 300000 \
+ && yarn cache clean
 
 # ============================================
 # Stage 5: Production — lean runtime (non-root)
