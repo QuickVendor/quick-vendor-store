@@ -6,7 +6,8 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache libc6-compat
 COPY package.json yarn.lock ./
-RUN --mount=type=cache,target=/root/.yarn \
+# id=qv-admin-yarn: Railway's BuildKit requires an explicit cache id.
+RUN --mount=type=cache,id=qv-admin-yarn,target=/root/.yarn \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --network-timeout 300000
 

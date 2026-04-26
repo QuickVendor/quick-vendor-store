@@ -6,10 +6,11 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
+# id=qv-backend-yarn: Railway's BuildKit requires an explicit cache id.
 # sharing=locked: serialize cache writes with the parallel prod-deps stage
 # (both target /root/.yarn; default sharing=shared corrupts entries under race).
 # hadolint ignore=DL3060
-RUN --mount=type=cache,target=/root/.yarn,sharing=locked \
+RUN --mount=type=cache,id=qv-backend-yarn,target=/root/.yarn,sharing=locked \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --network-timeout 300000
 COPY prisma ./prisma/
@@ -45,9 +46,9 @@ WORKDIR /app
 # hadolint ignore=DL3018
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
-# sharing=locked: see note in stage 1 — base and prod-deps share /root/.yarn.
+# id matches stage 1 so both share the same cache; sharing=locked serializes.
 # hadolint ignore=DL3060
-RUN --mount=type=cache,target=/root/.yarn,sharing=locked \
+RUN --mount=type=cache,id=qv-backend-yarn,target=/root/.yarn,sharing=locked \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --production --network-timeout 300000
 
