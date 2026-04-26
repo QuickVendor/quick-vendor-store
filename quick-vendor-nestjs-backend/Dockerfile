@@ -7,7 +7,9 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
 # hadolint ignore=DL3060
-RUN --mount=type=cache,target=/root/.yarn \
+# sharing=locked: serialize cache writes with the parallel prod-deps stage
+# (both target /root/.yarn; default sharing=shared corrupts entries under race).
+RUN --mount=type=cache,target=/root/.yarn,sharing=locked \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --network-timeout 300000
 COPY prisma ./prisma/
@@ -44,7 +46,8 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package.json yarn.lock ./
 # hadolint ignore=DL3060
-RUN --mount=type=cache,target=/root/.yarn \
+# sharing=locked: see note in stage 1 — base and prod-deps share /root/.yarn.
+RUN --mount=type=cache,target=/root/.yarn,sharing=locked \
     YARN_CACHE_FOLDER=/root/.yarn \
     yarn install --frozen-lockfile --production --network-timeout 300000
 
