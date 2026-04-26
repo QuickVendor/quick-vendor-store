@@ -101,16 +101,16 @@ jobs:
         working-directory: quick-vendor-nestjs-backend
         run: railway up --service quickvendor-backend --detach
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
 
       - name: Deploy storefront to staging
         working-directory: quick-vendor-store-front
         run: railway up --service quickvendor-storefront --detach
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
 
       - name: Deploy admin to staging
         working-directory: quick-vendor-admin
         run: railway up --service quickvendor-admin --detach
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
